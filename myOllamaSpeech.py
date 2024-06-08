@@ -1,6 +1,10 @@
 import requests
 import json
 import customtkinter as custk
+import speech_recognition as sr
+from gtts import gTTS
+import os
+import pygame
 
 class Finestra:
     def __init__(self, titolo):
@@ -53,12 +57,10 @@ class apiRequest:
         return json.dumps(self.__data)
     def getResponseObj(self): # Restituisce l'intero oggetto di risposta, se trovato
         if self.__responded:
-            self.__responded = False 
             return self.__response
         else: raise TypeError("Non hai inviato alcuna richiesta")
     def getResponseTextJson(self): # Restituisce il testo della risposta sotto formato JSON
         if self.__responded:
-            self.__responded = False 
             return json.loads(self.__response.text)
         else: raise TypeError("Non hai inviato alcuna richiesta")
     
@@ -67,6 +69,25 @@ class apiRequest:
 
         self.__response = requests.post(self.getURL(), headers = self.getHeaders(), data = self.getJsonData())
         self.__responded = True
+
+class Microfono:
+    def __init__(self):
+        self.riconoscitore = sr.Recognizer()
+
+    def registra(self):
+        with sr.Microphone() as source:
+            audio = self.riconoscitore.listen(source)
+        return audio
+    
+    def AudioToText(self, audio):
+        try:
+            testo = self.riconoscitore.recognize_google(audio, language = 'it-IT')
+            return testo
+        except sr.UnknownValueError:
+            raise TypeError("Non ho capito, ripeti.")
+        except sr.RequestError:
+            raise TypeError("Non sono riuscito a riconoscere il testo...")
+
 
 # Wrapper delle istruzioni da eseguire quando l'utente preme il bottone "Invia"
 def sendWrapper():
@@ -78,15 +99,34 @@ def sendWrapper():
     else:
         myOllama.listaLabel['risposta'].configure(text = f"Ecco la tua risposta:\n{request.getResponseTextJson()['response']}")
 
+# Wrapper delle istruzioni da eseguire quando l'utente richiede il riconoscimento vocale
+def speechWrapper():
+    # Registra la voce e riconosce il testo, inserendolo nella variabile di prompt
+
+    # Pulisce la entry e inserisce il nuovo prompt
+    myOllama.listaEntry['prompt'].delete(0, len(myOllama.prompt.get()))
+    myOllama.listaEntry['prompt'].insert(0, microfono.AudioToText(microfono.registra()))
+
+# Wrapper delle istruzioni da eseguire quando l'utente ascolta la risposta dell'IA
+def listenWrapper():
+    if not os.path.exists("temp"): os.mkdir("temp")
+    audio = gTTS(text = request.getResponseTextJson()['response'], lang = 'it', slow = False)
+    audio.save("temp\\response.mp3")
+    
+    pygame.mixer.init()
+    pygame.mixer.music.load("temp\\response.mp3")
+    pygame.mixer.music.play()
+
 
 
 if __name__ == "__main__":
     myOllama = Finestra("myOllama") # Oggetto della finestra da visualizzare
     request = apiRequest()          # Oggetto della richiesta da inviare
+    microfono = Microfono()         # Oggetto Microfono utilizzato per il riconoscimento vocale
 
     request.setURL("http://localhost:11434/api/generate")
     request.setHeaders({'Content-Type' : 'application/json'})
-    request.setData({'model' : 'llama2-uncensored', 'prompt' : None, 'stream' : False})
+    request.setData({'model' : 'phi3', 'prompt' : None, 'stream' : False})
 
     # Creazione label titolo
     myOllama.listaLabel['titolo'] = custk.CTkLabel(myOllama.getRoot(), text = "myOllama", font = custk.CTkFont('Roboto', 25, 'bold'))
@@ -103,6 +143,14 @@ if __name__ == "__main__":
     # Creazione entry field del prompt
     myOllama.listaEntry['prompt'] = custk.CTkEntry(myOllama.getRoot(), width = 350, height = 40, textvariable = myOllama.prompt)
     myOllama.listaEntry['prompt'].pack(pady = 10)
+
+    # Creazione bottone microfono
+    myOllama.listaBottoni['registra'] = custk.CTkButton(myOllama.getRoot(), text = "Registra", command = speechWrapper)
+    myOllama.listaBottoni['registra'].pack(pady = 10)
+
+    # Creazione bottone ascolto
+    myOllama.listaBottoni['ascolta'] = custk.CTkButton(myOllama.getRoot(), text = "Ascolta", command = listenWrapper)
+    myOllama.listaBottoni['ascolta'].pack(pady = 10)
 
     # Creazione bottone d'invio
     myOllama.listaBottoni['invio'] = custk.CTkButton(myOllama.getRoot(), text = "Invia", command = sendWrapper)

@@ -13,7 +13,6 @@ class Finestra:
         self.__root.title(titolo)
         self.__root.geometry("720x720")
 
-        self.__started = False
         self.prompt = custk.StringVar()
 
         self.listaBottoni = {}
@@ -22,14 +21,13 @@ class Finestra:
 
     def start(self):
         self.__root.mainloop()
-        self.started = True
 
     def reset(self): # Pulisce la label di risposta
         if 'risposta' in list(self.listaLabel.keys()): self.listaLabel['risposta'].configure(text = '')
 
     def getRoot(self):
         return self.__root
-    
+
 class apiRequest:
     def __init__(self):
         self.__url = ''
@@ -53,7 +51,7 @@ class apiRequest:
         return json.dumps(self.__data)
     def getResponseObj(self): # Restituisce l'intero oggetto di risposta, se trovato
         if self.__responded:
-            self.__responded = False 
+            self.__responded = False
             return self.__response
         else: raise TypeError("Non hai inviato alcuna richiesta")
     def getResponseTextJson(self): # Restituisce il testo della risposta sotto formato JSON
@@ -86,7 +84,7 @@ if __name__ == "__main__":
 
     request.setURL("http://localhost:11434/api/generate")
     request.setHeaders({'Content-Type' : 'application/json'})
-    request.setData({'model' : 'llama2-uncensored', 'prompt' : None, 'stream' : False})
+    request.setData({'model' : 'phi3', 'prompt' : None, 'stream' : False})
 
     # Creazione label titolo
     myOllama.listaLabel['titolo'] = custk.CTkLabel(myOllama.getRoot(), text = "myOllama", font = custk.CTkFont('Roboto', 25, 'bold'))

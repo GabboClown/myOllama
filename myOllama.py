@@ -51,12 +51,10 @@ class apiRequest:
         return json.dumps(self.__data)
     def getResponseObj(self): # Restituisce l'intero oggetto di risposta, se trovato
         if self.__responded:
-            self.__responded = False
             return self.__response
         else: raise TypeError("Non hai inviato alcuna richiesta")
     def getResponseTextJson(self): # Restituisce il testo della risposta sotto formato JSON
-        if self.__responded:
-            self.__responded = False 
+        if self.__responded: 
             return json.loads(self.__response.text)
         else: raise TypeError("Non hai inviato alcuna richiesta")
     
